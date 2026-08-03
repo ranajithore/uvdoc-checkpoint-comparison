@@ -519,11 +519,9 @@ def main():
     print(f"  ARCHITECTURE : "
           f"{'STRUCTURALLY IDENTICAL' if architecture_is_identical else 'DIFFERS'}")
     print()
-    print("  Bit-identical weights prove the Paddle release is a conversion of the")
-    print("  original checkpoint, not a retrain. They do not prove the two models")
-    print("  compute the same function: BatchNorm epsilon, padding_mode edge")
-    print("  semantics, align_corners and input channel order all change the output")
-    print("  while leaving every stored number identical.")
+    print("  Bit-identical weights mean the Paddle release is a conversion of the")
+    print("  original checkpoint, not a retrain: no training run, however short,")
+    print("  leaves every stored value unchanged.")
     print("=" * 78)
 
     return 0 if (weights_are_identical and architecture_is_identical) else 1

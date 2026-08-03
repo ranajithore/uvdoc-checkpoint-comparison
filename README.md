@@ -79,16 +79,35 @@ The network was trained on RGB, so the first difference means the Paddle pipelin
 
 ---
 
-## Running
+## Quick start
+
+```bash
+git clone https://github.com/ranajithore/uvdoc-checkpoint-comparison.git
+cd uvdoc-checkpoint-comparison
+./setup.sh
+```
+
+`setup.sh` creates a virtualenv, installs dependencies, downloads the two checkpoints
+(64 MB, not stored in git) and verifies their SHA-256. It is idempotent — safe to re-run.
+
+Then:
+
+```bash
+.venv/bin/python compare.py              # weights + architecture
+.venv/bin/python verify_determinism.py   # same image -> same grid, bit for bit
+```
+
+Both exit 0 when every check passes.
+
+<details>
+<summary>Manual setup, if you prefer</summary>
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install numpy torch paddlepaddle==3.0.0 pillow
-```
+.venv/bin/python -m pip install -r requirements.txt
+# On Linux, install CPU-only torch first to avoid ~2.5 GB of CUDA wheels:
+#   .venv/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-Download the checkpoints (not committed — 64 MB of third-party binaries):
-
-```bash
 mkdir -p checkpoints
 curl -fsSL -o checkpoints/best_model.pkl \
   "https://github.com/tanguymagne/UVDoc/raw/main/model/best_model.pkl"
@@ -98,14 +117,11 @@ curl -fsSL -o checkpoints/inference.json \
   "https://huggingface.co/PaddlePaddle/UVDoc/resolve/main/inference.json"
 ```
 
-```bash
-.venv/bin/python compare.py              # weights + architecture
-.venv/bin/python verify_determinism.py   # same image -> same grid, bit for bit
-```
+</details>
 
-Both exit 0 when all checks pass.
+`torch` is used only to read the PyTorch checkpoint — no PyTorch model is ever built or run.
 
-Verified artifacts:
+Checkpoints, verified by `setup.sh`:
 
 | File | Bytes | SHA-256 (first 16) |
 |---|---:|---|
@@ -173,6 +189,10 @@ of which parameter-bearing : 0
 model outputs           : 1
 
 >>> 2D PATH STRUCTURALLY IDENTICAL; nothing learnable after the grid
+
+SUMMARY
+  WEIGHTS      : BIT-WISE IDENTICAL
+  ARCHITECTURE : STRUCTURALLY IDENTICAL
 ```
 
 Layer sequences are compared **per type**, not positionally interleaved: a PyTorch `state_dict` serialises in `__init__` definition order while a Paddle graph is in execution order, so the interleaving legitimately differs.
@@ -267,6 +287,8 @@ Scope is limited to the two artifacts listed above. PaddlePaddle also distribute
 uvdoc-checkpoint-comparison/
 ├── README.md
 ├── LICENSE                  MIT
+├── setup.sh                 venv + dependencies + checkpoints, idempotent
+├── requirements.txt
 ├── compare.py               weights + architecture, static analysis
 ├── verify_determinism.py    same image -> same grid, bit for bit
 ├── images/                  18 document photographs, 2.1 MB, committed
