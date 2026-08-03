@@ -81,47 +81,42 @@ The network was trained on RGB, so the first difference means the Paddle pipelin
 
 ## Quick start
 
+Works on Windows, macOS and Linux. Requires Python 3.8+ and git.
+
 ```bash
 git clone https://github.com/ranajithore/uvdoc-checkpoint-comparison.git
 cd uvdoc-checkpoint-comparison
-./setup.sh
+python bootstrap.py
 ```
 
-`setup.sh` creates a virtualenv, installs dependencies, downloads the two checkpoints
-(64 MB, not stored in git) and verifies their SHA-256. It is idempotent — safe to re-run.
+`bootstrap.py` uses only the standard library, so it runs before anything is installed.
+It creates a virtualenv, installs dependencies, downloads the two checkpoints (64 MB, not
+stored in git) and verifies their SHA-256 — exiting non-zero on any mismatch rather than
+leaving a corrupted file for the comparison to read. Idempotent, so re-running reuses an
+existing virtualenv and cached checkpoints while still re-verifying checksums.
 
-Then:
+It prints the exact commands to run next. They are:
 
+**Windows**
+```bat
+.venv\Scripts\python.exe compare.py
+.venv\Scripts\python.exe verify_determinism.py
+```
+
+**macOS / Linux**
 ```bash
-.venv/bin/python compare.py              # weights + architecture
-.venv/bin/python verify_determinism.py   # same image -> same grid, bit for bit
+.venv/bin/python compare.py
+.venv/bin/python verify_determinism.py
 ```
 
-Both exit 0 when every check passes.
+Both exit 0 when every check passes. `compare.py` takes a few seconds;
+`verify_determinism.py` runs 175 forward passes and takes a couple of minutes.
 
-<details>
-<summary>Manual setup, if you prefer</summary>
+On Linux, `bootstrap.py` installs the CPU-only torch build first — the default index
+serves CUDA wheels (~2.5 GB), and `torch` is used here only to *read* the PyTorch
+checkpoint. No PyTorch model is ever built or run.
 
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-# On Linux, install CPU-only torch first to avoid ~2.5 GB of CUDA wheels:
-#   .venv/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-
-mkdir -p checkpoints
-curl -fsSL -o checkpoints/best_model.pkl \
-  "https://github.com/tanguymagne/UVDoc/raw/main/model/best_model.pkl"
-curl -fsSL -o checkpoints/inference.pdiparams \
-  "https://huggingface.co/PaddlePaddle/UVDoc/resolve/main/inference.pdiparams"
-curl -fsSL -o checkpoints/inference.json \
-  "https://huggingface.co/PaddlePaddle/UVDoc/resolve/main/inference.json"
-```
-
-</details>
-
-`torch` is used only to read the PyTorch checkpoint — no PyTorch model is ever built or run.
-
-Checkpoints, verified by `setup.sh`:
+Checkpoints, verified by `bootstrap.py`:
 
 | File | Bytes | SHA-256 (first 16) |
 |---|---:|---|
@@ -273,7 +268,7 @@ The weights are the MIT-licensed original, © 2023 Tanguy MAGNE, verified above 
 | 2D path structurally identical | **Proven** | `compare.py` |
 | Nothing learnable after the grid | **Proven** | `compare.py` |
 | Same image yields the same grid, bit for bit | **Proven** | `verify_determinism.py` |
-| The two shipping *pipelines* behave identically | **False** | see *Two behavioural differences* |
+| The two shipping *pipelines* behave identically | **False** | channel order (RGB vs BGR) and output resolution — see [above](#two-behavioural-differences) |
 
 `compare.py` is a static analysis and does not execute either model, so it cannot detect differences in settings a checkpoint does not store — BatchNorm epsilon, conv `padding_mode` edge semantics, `align_corners`. Those were confirmed to match by reading both sources; the channel-order difference is documented above.
 
@@ -287,7 +282,7 @@ Scope is limited to the two artifacts listed above. PaddlePaddle also distribute
 uvdoc-checkpoint-comparison/
 ├── README.md
 ├── LICENSE                  MIT
-├── setup.sh                 venv + dependencies + checkpoints, idempotent
+├── bootstrap.py             venv + dependencies + checkpoints, cross-platform
 ├── requirements.txt
 ├── compare.py               weights + architecture, static analysis
 ├── verify_determinism.py    same image -> same grid, bit for bit

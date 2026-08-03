@@ -1,7 +1,7 @@
 numpy>=1.21
 paddlepaddle==3.0.0
 # torch is used only to read the PyTorch checkpoint, never to run a model.
-# setup.sh installs the CPU-only build on Linux to avoid pulling CUDA wheels.
+# bootstrap.py installs the CPU-only build on Linux to avoid CUDA wheels.
 torch>=2.0
 # Pillow decodes the document photographs in images/ for the determinism test.
 pillow>=9
